@@ -1,0 +1,33 @@
+{
+    "workbench.colorTheme": "Visual Studio 2019 Dark",
+    "code-runner.runInTerminal": true,
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "editor.guides.bracketPairs": true,
+    "workbench.iconTheme": "material-icon-theme",
+    "php.validate.executablePath": "",
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+    "security.workspace.trust.untrustedFiles": "open",
+    "files.watcherExclude": {
+        "**/.bloop": true,
+        "**/.metals": true,
+        "**/.ammonite": true
+    },
+    "window.zoomLevel": 2,
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "files.autoSave": "afterDelay",
+    "workbench.editor.empty.hint": "hidden",
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
+}
