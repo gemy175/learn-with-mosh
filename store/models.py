@@ -3,6 +3,7 @@ from django.db import models
 # Create your models here.
 
 class Collection(models.Model):
+    featured_product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
     title = models.CharField(max_length=255)
 
@@ -19,12 +20,12 @@ class Product(models.Model):
     # sku = models.CharField(max_length=10, primary_key=True)
     title = models.CharField(max_length=255)
     description = models.TextField() 
-    price = models.DecimalField(max_digits=6 , decimal_places=2)
+    unit_price = models.DecimalField(max_digits=6 , decimal_places=2)
     inventory = models.IntegerField()
     last_update = models.DateTimeField(auto_now= True)
     collection = models.ForeignKey(Collection , on_delete=models.PROTECT)
     promotions = models.ManyToManyField(Promotion)
-
+    slug = models.SlugField()
 
 class Customer(models.Model):
     
@@ -32,11 +33,11 @@ class Customer(models.Model):
     M_SILVER = 'S'
     M_GOLD = 'G'
 
-    MEMBERSHIP_CHOICES = {
+    MEMBERSHIP_CHOICES = [
         (M_BRONZE , 'Bronze'),
         (M_SILVER , 'Silver'),
         (M_GOLD , 'Gold'),
-    }
+    ]
     
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
@@ -45,25 +46,33 @@ class Customer(models.Model):
     birth_date = models.DateField(null=True)
     membership = models.CharField(max_length=1 ,choices=MEMBERSHIP_CHOICES , default=M_BRONZE)
 
-
+    # expected as reverse relationship field 'order_set' but it is 'order'
+    
+    # class Meta:
+    #     db_table = 'store_customer' #not recommended
+    #     indexes = [
+    #         models.Index(fields=['last_name','first_name'])
+    #     ]
 
 class Order(models.Model):
-    placed_at = models.DateTimeField(auto_now_add = True)
 
-    PAYMENT_CHOICES = {
+    PAYMENT_CHOICES = [
         ('P' , 'Pending'),
         ('C' , 'Complete'),
         ('F' , 'Failed')
-    }
+    ]
 
+    placed_at = models.DateTimeField(auto_now_add = True)
     payment_status = models.CharField(max_length=1 , choices=PAYMENT_CHOICES)
+    
     customer = models.ForeignKey(Customer , on_delete=models.PROTECT)
 
 
 
 class OrderItem(models.Model):
-
+    # so django create reverse ralationship with column 'orderitem_set' you can change the name if you add related_name attr to the relation
     order =  models.ForeignKey(Order , on_delete=models.PROTECT)
+    
     product =  models.ForeignKey(Product , on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField()
     unit_price = models.DecimalField(max_digits=6 , decimal_places=2)
@@ -73,9 +82,10 @@ class OrderItem(models.Model):
 class Address(models.Model):
     street = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
-    
+    zip = models.CharField(max_length=10 , null=True , blank=True)
+
 # one to one relationship
-    customer = models.OneToOneField(Customer , on_delete=models.CASCADE, primary_key=True)
+    # customer = models.OneToOneField(Customer , on_delete=models.CASCADE, primary_key=True)
 # one to many relationship
     customer = models.ForeignKey(Customer , on_delete=models.CASCADE)
 

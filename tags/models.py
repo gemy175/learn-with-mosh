@@ -1,6 +1,6 @@
 from django.db import models
-from django.contrib .contenttypes.models import ContentType
-from django.contrib .contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 # Create your models here.
 
@@ -11,6 +11,7 @@ class Tag(models.Model):
 class TaagedItem(models.Model):
     tag = models.ForeignKey(Tag , on_delete=models.CASCADE)
     # product = models.ForeignKey(Product , on_delete=models.CASCADE)
+    # to make it general and can use it with any obj so :>
     # we need the type and id 
     # TYPE
     content_type = models.ForeignKey(ContentType , on_delete=models.CASCADE)
@@ -19,3 +20,5 @@ class TaagedItem(models.Model):
 
     # actual object that tag applied to 
     content_object = GenericForeignKey()
+
+
