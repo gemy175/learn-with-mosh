@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F, Value, Func, ExpressionWrapper, DecimalField
 from django.db.models.functions import Concat
 from django.db.models.aggregates import Count , Max, Min, Avg, Sum
-from store.models import Product, OrderItem, Order, Customer
+from store.models import Product, Collection, Order, OrderItem, Order, Customer
 
 def say_hello(req):
     # every object has attribute called 'objects' which returns a 'manager' 
@@ -39,7 +39,7 @@ def say_hello(req):
     # get() -> return actual object 
     # so problems in this code:
     #   using get with not existed pk number gives error in page
-    #   so you use try catch (but deos this proffesional or there is way "line 45")
+    #   so you use try catch (but does this proffesional ?? or there is another way "line 49")
     # try:
     #     product = Product.objects.get(pk=0)
     # except ObjectDoesNotExist:
@@ -49,9 +49,12 @@ def say_hello(req):
     # product = Product.objects.filter(pk=0).first()
     # exists return boolean
     # exists = Product.objects.filter(pk=0).exists()
+
+
     # *******************************************************************
     # # ******* FILTER with LOOK UP TYPES return query set *********
     # *******************************************************************
+
     # # filter based on field vlaue
     # queryset = Product.objects.filter(unit_price__lt=20)
     # queryset = Product.objects.filter(unit_price__lte=20)
@@ -86,14 +89,14 @@ def say_hello(req):
     # # Q()
     # # **************** what about OR or NOT how to implement them ***********
     # #                   solution is -->> Q()
-    # #                                                     OR                    
+    # #                                                     OR        
     # queryset = Product.objects.filter(Q(inventory__lt=10) | Q(unit_price__lt=20)) 
     # #                                                   AND, NOT operator 
     # queryset = Product.objects.filter (Q(inventory__lt=10) & ~Q(unit_price__lt=20))
 
 
     # # F()
-    # # ************** referencing fields using F() *********
+    # # ************** referencing fields using F() , complex operations *********
     # # like if we get product that it's inventory = unit_price
 
     # queryset = Product.objects.filter (inventory = F('unit_price'))
@@ -205,45 +208,176 @@ def say_hello(req):
 
     # sometimes we need to add additional attributes to our objects while quering them 
     # queryset = Customer.objects.annotate(is_new=True) # ERROR -> as annotate() take only Expression
-    #Expression class is the base class for all classes/types of expression --> value > (num , bool , str) , f > (field in same or other table) , func >(DB functions) , aggregate > (aggregate classes)
+    # Expression class is the base class for all classes/types of expression --> value > (num , bool , str) , f > (field in same or other table) , func >(DB functions) , aggregate > (aggregate classes)
     
-    #      ******** value() ******                                                                 
-    queryset = Customer.objects.annotate(is_new=Value(True))
+    # #      ******** value() ******                                                                 
+    # queryset = Customer.objects.annotate(is_new=Value(True))
     
-    #      ******** F() ******                                                                 
-    # can we assign the value compared to a value related to other field ???
-    # yep , f() 
-    queryset = Customer.objects.annotate(new_id=F('id'))
-    queryset = Customer.objects.annotate(new_id=F('id') + 1)
+    # #      ******** F() ******                                                                 
+    # # can we assign the value compared to a value related to other field ???
+    # # yep , f() 
+    # queryset = Customer.objects.annotate(new_id=F('id'))
+    # queryset = Customer.objects.annotate(new_id=F('id') + 1)
 
-    #      ******** Func() ****** 
-    # database funcitons
-    # 'CONCAT'                                          
-    queryset = Customer.objects.annotate(full_name=Func(F('first_name'), Value(' '), F('last_name'), function='CONCAT'))
-    # there is short-hand to achive concat no F() but need value(' ') otherwise django will think ' ' is column in table
-    queryset = Customer.objects.annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+    # #      ******** Func() ****** 
+    # # database funcitons
+    # # 'CONCAT'                                          
+    # queryset = Customer.objects.annotate(full_name=Func(F('first_name'), Value(' '), F('last_name'), function='CONCAT'))
+    # # there is short-hand to achive concat no F() but need value(' ') otherwise django will think ' ' is column in table
+    # queryset = Customer.objects.annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
 
-    #      ******** Grouping Data****** 
+    # #      ******** Grouping Data****** 
 
-    queryset = Customer.objects.annotate(
-        order_count=Count('order')
-    )
+    # queryset = Customer.objects.annotate(
+    #     order_count=Count('order')
+    # )
 
-    #      ******** Working with Expression Wrapper ****** 
-    # used to avoid errors of operation on fields like (multiply decimal with float)
-    discount_price = ExpressionWrapper(F('unit_price') * 0.8, output_field=DecimalField())
-    queryset = Product.objects.annotate(
-        discount_price=discount_price
-    )
+    # #      ******** Working with Expression Wrapper ****** 
+    # # used to avoid errors of operation on fields like (multiply decimal with float)
+    # discount_price = ExpressionWrapper(F('unit_price') * 0.8, output_field=DecimalField())
+    # queryset = Product.objects.annotate(
+    #     discount_price=discount_price
+    # )
 
 
     #      ******** Quering Generic Relationships ****** look at tags/models.tagItem
+    
+    # in database (generic relationship) django create django_content_type table that have (id , app, model) attr's
+    # then we go to tags_taggeditem table and it has content_type_id attr so we get the id from django_content_type then filter with it and (for example ) and the id of products you want to find out 
+    from django.contrib.contenttypes.models import ContentType
+    from tags.models import TaggedItem 
+    # from store.models import Product 
+    
+    # ContentType manager (returned from objects) has special method get_for_model()
+        # copy this code (254 - 261) to custom manager class in tags/views.py
 
+    # content_type = ContentType.objects.get_for_model(Product)
+    # # we should preload field tag from tags_tag table so we need to select related tag field
+    # queryset = TaggedItem.objects \
+    #     .select_related('tag') \
+    #     .filter(
+    #         content_type=content_type,
+    #         object_id=1
+    #     )
+    # >>>>>>>>>>>>>> this is not clean nor proffessional every time we want to get the tag for object we find 1- content type , 2- go to tag_item model preload field('tag') then apply filter  
+    #  better way >>> "build custom manager for tagItem model" <<<<
+    # so we will replace the default manager returned from objects with a custom one
+    # after defining the custom manager lets use it 
+
+    # queryset = TaggedItem.objects.get_tags_for(Product, 1)
+
+
+    # ******************************************
+        #   QUERYSET CACHE
+    # ******************************************
+
+    queryset = Product.objects.all() #lazy loading 
+    # list(queryset) # the query evaluated here then cached fro future use
+    # list(queryset) #gotten from the cache
+    # queryset[0] #gotten from the cache
+    # # *** notice *** caching happen only if you evaluate the entire query set first
+    # # *BUT IF EVALUATE PART OF QUERYSET IT IS NOT CACHED*
+    # queryset[0] #query
+    # list(queryset) #another query
+
+
+
+    # ******************************************
+        #   CREATING OBJECT
+    # ******************************************
+
+    # there is 2 ways to create object with its attr's 
+    # 1- keword args >> it is shorter but if name of field change it is not automatic changed in referenced places
+    # 2- individual args(using dot) >> it is longer but more efficient 
+
+    # collection = Collection()
+    # collection.title = 'men'
+    # collection.featured_product = Product(pk=1)
+    # # collection.featured_product_id = 1  # *is the same as line 295
+    # collection.save()
+    # as we did not assign id django would see this as insert operation 
+
+    # # another way 'SHORT HAND'
+    # collection=Collection.objects.create(title='men',featured_product_id=1)
+
+    # ******************************************
+        #   UPDATING OBJECT
+    # ******************************************
+    # # 1
+    # collection = Collection(pk=11)
+    # collection.title = 'Games'
+    # collection.featured_product = None
+    # collection.save()
+
+    # # 2 > if we do not give title value
+    # collection = Collection(pk=11)
+    # # collection.title = 'Games'  >> django will set it default to empty string
+    # collection.featured_product = None
+    # collection.save()
+    # # so :> we need to read the collection from database before update
+    # collection = Collection.objects.get(pk=11)
+    # collection.featured_product = None
+    # collection.save()
+    # this extra read may be a performance issue (you could use update) 
+
+    # Collection.objects.filter(pk=11).update(featured_product=None) # 
+    
+    # but this way if you edit the attr name you must change it manually
+
+    # ******************************************
+        #   DELETING OBJECT
+    # ******************************************
+    # # 1
+    # collection = Collection(pk=11)
+    # collection.delete()
+
+    # # 2
+    # Collection.objects.filter(id__gt=5).delete()
+
+    # ******************************************
+        #   TRANSACTIONS
+    # ******************************************
+    from django.db import transaction
+
+    # there is multiple changes and  all changes commited or all changes rollback 
+    # we also could use ' @transaction.atomic() ' decorator above the entire function
+    # with transaction.atomic():
+    #     order = Order()
+    #     order.customer_id=1
+    #     order.save()
+    #     # with out transaction: imagine that error occur here >> database would be inconsistent we will have order without items
+    #     item = OrderItem()
+    #     item.order = order
+    #     item.product_id = 1
+    #     item.quantity = 1
+    #     item.unit_price = 10
+    #     item.save()
+
+
+    # ******************************************
+    #   RAW SQL QUERIES
+    # ******************************************
+    # use it when dealing with complex queries use it when django query is low performance or if it very complex with filters and annotations, difer , only,... and you know in SQL it is more simple 
+    queryset = Product.objects.raw('SELECT * FROM store_product')
+    queryset = Product.objects.raw('SELECT id, title FROM store_product')
+
+    # different approch 
+    from django.db import connection
+    cursor = connection.cursor()
+    cursor.execute('') # pass any SQL statements
+    cursor.close()
+    
+    # it is better performance to use WITH context manager with it
+    with connection.cursor() as cursor:
+        cursor.execute('')
+        cursor.callproc('get_customers', [1,2,'a'])
+        #      callproc() :>> is used to execute database stored procedures directly
+#*****************************************************************************************************
 
 
 
 #****************
-#    stop at 3.20 m (nearly)
+#    stop at 4.17 m (nearly)
 #****************
     # return HttpResponse('hello from django')
     return render(req, 'hello.html' , {'name': 'ahmed' , 'age': 20, 'result': list(queryset)})
